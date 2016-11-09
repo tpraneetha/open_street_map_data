@@ -100,6 +100,8 @@ def shape_element(element):
     node = {}
 
     address = {}
+    amenity={}
+    religion={}
 
     pos = []
 
@@ -138,7 +140,14 @@ def shape_element(element):
            node["pos"] = None
 
         for tag in element.iter('tag'):
-
+           if re.search('amenity',tag.attrib['k']):
+                a=tag.attrib['k']
+                amenity[a]=tag.attrib['v']
+                node['amenity']=amenity
+           if re.search('religion',tag.attrib['k']):
+                r=tag.attrib['k']
+                religion[r]=tag.attrib['v']
+                node['religion']=religion     
            if re.search('addr:', tag.attrib['k']):
 
                 if len(tag.attrib['k'].split(":")) < 3:
@@ -157,7 +166,7 @@ def shape_element(element):
             node_refs.append(nd.attrib["ref"])
             node["node_refs"] = node_refs
         return node
-
+        
 
     else:
 
