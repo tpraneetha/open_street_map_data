@@ -4,18 +4,33 @@ import re
 import pprint
 import json
 import codecs
-
+# storing the path of the osm file in variable name-osm_file
 osm_file='C:/Users/Praneetha/Documents/chennai_india.osm'
-def get_element(osm_file):
-    context=ET.iterparse(osm_file,events=('start','end'))
-    _,root=next(context)
-    for event,elem in context:
-        if event=='end':
+SAMPLE_FILE = "sample.osm"
+
+k = 10 # Parameter: take every k-th top level element
+# Parsing through the elements of the osm_file
+def get_element(osm_file, tags=('node', 'way', 'relation')):
+    context = iter(ET.iterparse(osm_file, events=('start', 'end')))
+    _, root = next(context)
+    for event, elem in context:
+        if event == 'end' and elem.tag in tags:
             yield elem
             root.clear()
-def count_tags(osm_file):
+with open(SAMPLE_FILE, 'wb') as output:
+    output.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    output.write('<osm>\n  ')
+
+    # Write every kth top level element
+    for i, element in enumerate(get_element(osm_file)):
+        if i % k == 0:
+            output.write(ET.tostring(element, encoding='utf-8'))
+
+    output.write('</osm>')
+
+def count_tags(SAMPLE_FILE):
     tags={}
-    for elem in get_element(osm_file):
+    for elem in get_element(SAMPLE_FILE):
         if elem.tag in tags :
             tags[elem.tag] +=1
         else:
@@ -50,15 +65,15 @@ def audit_street_type(street_types,street_name):
 
 def is_street_name(elem):
     return (elem.attrib['k']=="addr:street")
-def audit(osm_file):
-    for elem in get_element(osm_file):
+def audit(SAMPLE_FILE):
+    for elem in get_element(SAMPLE_FILE):
         if elem.tag=="way":
             for tag in elem.iter("tag"):
                 if is_street_name(tag):
                     audit_street_type(street_types,tag.attrib['v'])
                     pprint.pprint(dict(street_types))
     return street_types
-audit(osm_file)
+audit(SAMPLE_FILE)
 def update_name(name, mapping):
 
     m=street_types_re.search(name)
@@ -68,11 +83,11 @@ def update_name(name, mapping):
     return name
 
 def test():
- st_types=audit(osm_file)
+ st_types=audit(SAMPLE_FILE)
  for st_type,ways in street_types.iteritems():
        for name in ways:
            better_name = update_name(name, mapping)
-           print better_name
+#            print better_name
 test()
 lower = re.compile(r'^([a-z]|_)*$')
 lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
@@ -152,7 +167,7 @@ def process_map(file_in, pretty = False):
     file_out = "{0}.json".format(file_in)
     data = []
     with codecs.open(file_out, "w") as fo:
-        for _, element in ET.iterparse(file_in):
+        for element in get_element(file_in):
             el = shape_element(element)
             if el:
                 data.append(el)
@@ -162,8 +177,8 @@ def process_map(file_in, pretty = False):
                     fo.write(json.dumps(el) + "\n")
     return data
 
-data = process_map(osm_file, True)
-pprint.pprint(data)
+data = process_map(SAMPLE_FILE, True)
+# pprint.pprint(data)
 def get_db(db_name):
     from pymongo import MongoClient
     client = MongoClient('localhost:27017')
@@ -171,11 +186,7 @@ def get_db(db_name):
     return db
 
 def make_pipeline():
-    # complete the aggregation pipeline
-    pipeline = [
-    {"$match":{"road":{"$exists":True}}},
-        {"$group":"road","count":{"$sum":1}}
-        ]
+    pipeline = [{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$sort":{"count":1}},{"$limit":10}]
 
     return pipeline
 
@@ -183,9 +194,11 @@ def aggregate(db, pipeline):
     return [doc for doc in db.osmdata.aggregate(pipeline)]
 
 db = get_db('examples')
-# pipeline = make_pipeline()
-# result = aggregate(db, pipeline)
-# pprint.pprint(result[0])
+pipeline = make_pipeline()
+result = aggregate(db, pipeline)
+print result
+u=db.osmdata.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$group":{"_id":"$count", "num_users":{"$sum":1}}}, {"$sort":{"_id":1}}, {"$limit":1}])
+print u
 node_count=db.osmdata.find({"type":"node"}).count()
 unique_user=len(db.osmdata.distinct("created.user"))
 way_count=db.osmdata.find({"type":"way"}).count()
