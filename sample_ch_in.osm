@@ -1,0 +1,12 @@
+﻿<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="osmconvert 0.8.5" timestamp="2016-10-31T15:03:02Z">
+	<bounds minlat="12.7" minlon="79.9" maxlat="13.3" maxlon="80.4"/>
+	<node id="30037232" lat="13.0815216" lon="80.274759" version="4" timestamp="2008-12-10T08:09:35Z" changeset="299052" uid="1306" user="PlaneMad"/>
+	<node id="30037233" lat="13.0808825" lon="80.2707647" version="15" timestamp="2009-02-09T19:59:50Z" changeset="301077" uid="1306" user="PlaneMad"/>
+	<node id="30037235" lat="13.0807843" lon="80.2651669" version="8" timestamp="2015-04-01T21:54:52Z" changeset="29916593" uid="2748195" user="karitotp">
+		<tag k="highway" v="traffic_signals"/>
+	</node>
+	<node id="30037236" lat="13.0802951" lon="80.2627848" version="4" timestamp="2008-10-16T08:04:54Z" changeset="365622" uid="1306" user="PlaneMad">
+		<tag k="highway" v="traffic_signals"/>
+	</node>
+	
