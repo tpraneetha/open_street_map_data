@@ -280,3 +280,65 @@ def process_map(file_in, pretty = False):
     return data
 data = process_map(SAMPLE_FILE, True)
 # pprint.pprint(data)
+def get_db(db_name):
+    """
+    Connection with Mongodb is established and the database name is obtained
+    """
+    from pymongo import MongoClient
+    client = MongoClient('localhost:27017')
+    db = client[db_name]
+    return db
+
+def make_pipeline():
+    """
+    The queries are formulated
+    """
+    pipeline = [{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$sort":{"count":-1}},{"$limit":17}]
+    return pipeline
+
+def aggregate(db, pipeline):
+    """
+    arguments: the database and query
+    the queries are run on the database
+    """
+    return [doc for doc in db.osmdata.aggregate(pipeline)]
+# Top 1 contributing user
+db = get_db('examples')
+pipeline = make_pipeline()
+result = aggregate(db, pipeline)
+print result
+# Number of users appearing only once (having 1 post)
+u=db.osmdata.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$group":{"_id":"$count", "num_users":{"$sum":1}}}, {"$sort":{"_id":1}}, {"$limit":1}])
+for doc in u:
+    print doc
+# Total documents
+doc_count=db.osmdata.find().count()
+# node count
+node_count=db.osmdata.find({"type":"node"}).count()
+# unique users
+unique_user=len(db.osmdata.distinct("created.user"))
+# way count
+way_count=db.osmdata.find({"type":"way"}).count()
+print node_count
+print unique_user
+print way_count
+print doc_count
+# Top 10 amenities
+a=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}},
+                        {"$group":{"_id":"$amenity","count":{"$sum":1}}}, 
+                        {"$sort":{"count":-1}}, {"$limit":10}])
+for doc in a:
+   print doc
+# Top religion
+r=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}},                                              
+{"$group":{"_id":"$religion", "count":{"$sum":1}}},                                                
+{"$sort":{"count":-1}}])
+for doc in r:
+   print doc
+# Top cuisine
+c=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}}, 
+                        {"$group":{"_id":"$cuisine", "count":{"$sum":1}}}, 
+                        {"$sort":{"count":-1}}])
+for doc in c:
+    print doc
+
