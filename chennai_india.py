@@ -1,3 +1,8 @@
+"""
+Data Wrangling is done for the chennai state of India. size of data: 407,669,106bytes
+The reason for selecting this part of the map is that I lived major part of my life in this city of Tamil Nadu India --Chennai. The link to this map set https://mapzen.com/data/metro-extracts/metro/chennai_india/
+Sites that i have been browsing regarding my Data wrangling:stackoverflow,Mongodb.com,http://wiki.openstreetmap.org/wiki/Accuracy.
+"""
 # Importing all the packages 
 import xml.etree.cElementTree as ET
 from collections import defaultdict
@@ -39,7 +44,9 @@ with open(SAMPLE_FILE, 'wb') as output:
             output.write(ET.tostring(element, encoding='utf-8'))
 
     output.write('</osm>')
-
+"""
+Counting the tags in the osm_file:
+"""
 def count_tags(SAMPLE_FILE):
     """
     Arguments:sample_file got from the osm_file
@@ -163,6 +170,10 @@ def audit(SAMPLE_FILE):
 ##                    pprint.pprint(dict(street_types))
     return street_types
 # audit(SAMPLE_FILE)
+"""
+Problems encountered:The street names have to be corrected as not all streets are marked as 'street' 
+few are stated as 'st'.updating similar changes to the dataset is done below: Updating the street names
+"""
 def update_name(name, mapping):
   """
   arguments are passed from the function shape_element()
@@ -181,6 +192,9 @@ def update_name(name, mapping):
 #        for name in ways:
 #            better_name = update_name(name, mapping)
 #            print better_name
+"""
+Converting into json format so that it can be imported into MongoDb for further analysis:
+"""
 lower = re.compile(r'^([a-z]|_)*$')
 lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
 problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
@@ -280,6 +294,9 @@ def process_map(file_in, pretty = False):
     return data
 data = process_map(SAMPLE_FILE, True)
 # pprint.pprint(data)
+"""
+Connecting to MongoDB and executing queries based on the imported .json file:
+"""
 def get_db(db_name):
     """
     Connection with Mongodb is established and the database name is obtained
@@ -311,6 +328,10 @@ print result
 u=db.osmdata.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$group":{"_id":"$count", "num_users":{"$sum":1}}}, {"$sort":{"_id":1}}, {"$limit":1}])
 for doc in u:
     print doc
+"""
+Additional data exploration using MongoDb queries:
+Counting the number of nodes and ways using MongoDb: Counting the number of unique users:
+"""
 # Total documents
 doc_count=db.osmdata.find().count()
 # node count
@@ -329,16 +350,31 @@ a=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}},
                         {"$sort":{"count":-1}}, {"$limit":10}])
 for doc in a:
    print doc
+"""
+From the above results we can see that top amenity is the Place of worship naturally as chennai is called the temple town.
+"""
 # Top religion
 r=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}},                                              
 {"$group":{"_id":"$religion", "count":{"$sum":1}}},                                                
 {"$sort":{"count":-1}}])
 for doc in r:
    print doc
+"""
+Though the first highest is None we can see that
+there is some information missing but taking account of other results we can say that Hindu religion is high in number.
+"""
 # Top cuisine
 c=db.osmdata.aggregate([{"$match":{"amenity":{"$exists":1}}}, 
                         {"$group":{"_id":"$cuisine", "count":{"$sum":1}}}, 
                         {"$sort":{"count":-1}}])
 for doc in c:
     print doc
-
+"""
+Top cuisine of chennai is the Indian cuisine.
+Overview of data: More clearity in the data is required as we can see the top count in cuisine and religion is None.
+Further information provided will give us a clear idea regarding the result.First 10 Top contributing users seems 
+to be very high compared to other users.
+Further Improvements: Naming is not always unambiguous and there are many sources of confusion -
+from different governmental entities naming the features differently, to inaccurate signposting. OpenStreetMap tries to map reality 'on the ground'. What do the street signs say? What do the local inhabitants call the place? Benefits: I think that local names can also be added to the map would help the tourists and people new to that particular city. Problems: The data may look cluttered on the map.There may be even two to three names for a given place which poses a problem.The pronunciation/spelling should also be considered. Keeping track of all the local names for a place becomes difficult.
+While auditing data general mapping i.e st-->street becomes difficult in case of local names.
+"""
